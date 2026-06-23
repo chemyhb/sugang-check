@@ -40,4 +40,113 @@ subject_data = {
     ],
     "예술 / 체육": [
         ("음악 연주와 창작", "진로"), ("미술 창작", "진로"), ("음악 감상과 비평", "진로"), ("미술 감상과 비평", "진로"),
-        ("음악과 미디어", "융합
+        ("음악과 미디어", "융합"), ("미술과 매체", "융합"), ("운동과 건강", "일반")
+    ],
+    "교양": [
+        ("보건", "교양"), ("인간과 철학", "교양"), ("생태와 환경", "교양"), ("미술 감상과 비평", "교양"),
+        ("인간과 심리", "교양"), ("교육의 이해", "교양"), ("인간과 경제활동", "교양"), ("논리와 사고", "교양"), ("생애 설계와 자립", "교양")
+    ]
+}
+
+# 과학 및 제2외국어 위계성 규칙
+hierarchy_rules = {
+    '역학과 에너지': '물리학', '전자기와 양자': '물리학',
+    '화학 반응의 세계': '화학', '물질과 에너지': '화학',
+    '생물의 유전': '생명과학', '세포와 물질대사': '생명과학',
+    '지구시스템과학': '지구과학', '행성우주과학': '지구과학',
+    '중국어 회화': '중국어', '심화 중국어': '중국어',
+    '일본어 회화': '일본어', '심화 일본어': '일본어'
+}
+
+# 중복 편성 과목
+overlap_list = [
+    '지식 재산 일반', '기후변화와 환경생태', '융합과학 탐구', '생활과학 탐구', 
+    '로봇과 공학세계', '생태와 환경', '인간과 심리', '교육의 이해', '인간과 경제활동'
+]
+
+# ==========================================
+# 2. 웹 화면 UI 구성
+# ==========================================
+st.set_page_config(page_title="교과군별 수강신청 검증", layout="wide")
+
+st.title("📋 2026학년도 입학생 수강신청 사전 검증")
+st.caption("교과군별로 원하는 과목을 선택하세요. 과목명 앞의 [유형]을 참고하여 진로에 맞게 선택하시기 바랍니다.")
+
+# 학생 정보 입력
+col_info1, col_info2 = st.columns(2)
+with col_info1:
+    st.text_input("학번 (예: 10101)", key="st_id")
+with col_info2:
+    st.text_input("성명", key="st_name")
+
+st.divider()
+
+# 선택된 과목들을 담을 리스트
+selected_subjects = []
+kme_count = 0 # 국수영 카운트용
+
+# 교과군별로 체크박스 화면 생성
+for group_name, subjects in subject_data.items():
+    st.subheader(f"📘 {group_name} 교과")
+    
+    # 한 줄에 3개씩 배치하여 깔끔하게 보이도록 구성
+    cols = st.columns(3)
+    for idx, (subj_name, subj_type) in enumerate(subjects):
+        with cols[idx % 3]:
+            # 체크박스 라벨에 [일반], [진로], [융합] 표시
+            is_checked = st.checkbox(f"[{subj_type}] {subj_name}", key=f"{group_name}_{subj_name}")
+            if is_checked:
+                selected_subjects.append(subj_name)
+                # 국, 수, 영 교과군일 경우 카운트 증가
+                if group_name in ["국어", "수학", "영어"]:
+                    kme_count += 1
+    st.write("") # 섹션 간 여백
+
+# ==========================================
+# 3. 검증 로직 실행
+# ==========================================
+st.divider()
+
+if st.button("🔍 수강신청 규정 검증하기", use_container_width=True):
+    if not st.session_state.st_id or not st.session_state.st_name:
+        st.error("⚠️ 학번과 성명을 먼저 입력해 주세요.")
+    else:
+        errors = []
+        
+        # 1. 위계 검증
+        for subj in selected_subjects:
+            if subj in hierarchy_rules:
+                pre_subj = hierarchy_rules[subj]
+                if pre_subj not in selected_subjects:
+                    errors.append(f"🚩 **위계 오류**: '{subj}'을(를) 배우려면 선수 과목인 '{pre_subj}'을(를) 반드시 선택해야 합니다.")
+        
+        # 2. 국수영 8과목 제한 (24학점) 검증
+        if kme_count > 8:
+            errors.append(f"🚩 **국/수/영 제한**: 선택한 국·수·영 과목이 {kme_count}개입니다. 최대 8개(24학점)까지만 선택 가능합니다.")
+
+        # 3. 중복 수강 검증
+        for overlap_subj in overlap_list:
+            if selected_subjects.count(overlap_subj) > 1:
+                errors.append(f"🚩 **중복 수강**: '{overlap_subj}' 과목을 2회 이상 선택했습니다. 3년간 1회만 수강 가능합니다.")
+
+        # 검증 결과 출력
+        st.subheader(f"📊 {st.session_state.st_id} {st.session_state.st_name} 학생 검증 결과")
+        if not errors:
+            st.success("✅ 모든 졸업 요건 및 과목 위계가 정상입니다! 이대로 수강신청을 진행하세요.")
+            st.balloons()
+        else:
+            st.error(f"❌ 총 {len(errors)}건의 오류가 발견되었습니다. 아래 내용을 확인하고 체크를 수정해 주세요.")
+            for e in errors:
+                st.warning(e)
+
+# 우측 하단 도움말
+st.sidebar.markdown("### 💡 유형별 안내")
+st.sidebar.info("""
+* **[일반]**: 교과별 학문의 기본적 이해를 돕는 과목
+* **[진로]**: 교과 융합, 진로 안내 학습, 심화 학습을 위한 과목
+* **[융합]**: 교과 내/교과 간 융합, 실생활 응용을 위한 과목
+
+⚠️ **주의사항**
+1. 국/수/영 교과군 합산 최대 8과목까지만 선택 가능합니다.
+2. 과학 및 제2외국어의 [진로/융합] 과목은 반드시 [일반] 선수 과목을 함께 체크해야 합니다.
+""")
