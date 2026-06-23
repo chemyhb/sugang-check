@@ -15,7 +15,7 @@ tech_info_foreign_subjects = [
     '데이터 과학', '심화 일본어', '심화 중국어', '아동발달과 부모', '소프트웨어와 생활', '일본 문화'
 ]
 
-# 중복 편성 과목 (여러 학기에 편성되지만 선택은 1회만 가능)
+# 중복 편성 과목
 overlap_list = [
     '지식 재산 일반', '기후변화와 환경생태', '융합과학 탐구', '생활과학 탐구', 
     '로봇과 공학세계', '생태와 환경', '인간과 심리', '교육의 이해', '인간과 경제활동'
@@ -45,7 +45,7 @@ semester_mapping = {
 }
 
 # ==========================================
-# 2. 표 형태 데이터 구성 (중복 편성 과목 양쪽 학기 모두 배치)
+# 2. 표 형태 데이터 구성
 # ==========================================
 matrix_data = {
     "국어": {
@@ -129,7 +129,7 @@ def show_result_dialog(errors):
 st.set_page_config(page_title="2026학년도 수강신청 검증", layout="wide")
 
 st.title("📋 2026학년도 입학생 수강신청 사전 검증")
-st.caption("안내문의 표(Grid)와 동일하게 구성되어 있습니다. 과목명 앞의 🔵은 3학점 선택, 🟡은 2학점(예술/교양) 선택입니다.")
+st.caption("안내문의 표와 동일한 배열입니다. 과목명 앞의 🔵은 3학점 선택, 🟡은 2학점 선택입니다. <br>**굵은 글씨(🔄)로 표시된 과목은 3년간 딱 1번만 수강할 수 있는 중복 편성 과목**입니다.", unsafe_allow_html=True)
 
 col_info1, col_info2 = st.columns(2)
 with col_info1:
@@ -162,9 +162,15 @@ for category, sem_data in matrix_data.items():
         with cols[i+1]:
             if sem in sem_data:
                 for group_id, subj, tag in sem_data[sem]:
-                    # 예술, 교양 등 택1 과목은 노란 원으로 시각적 차이를 둠
                     marker = "🟡" if group_id in ["2-1-A", "2-2-C", "3-1-F", "3-2-H"] else "🔵"
-                    label = f"{marker} [{tag}] {subj}"
+                    
+                    # 🔥 중복 편성 과목 시각적 강조 (볼드체 + 아이콘)
+                    if subj in overlap_list:
+                        display_subj = f"**{subj}** 🔄"
+                    else:
+                        display_subj = subj
+                        
+                    label = f"{marker} [{tag}] {display_subj}"
                     
                     if st.checkbox(label, key=f"{group_id}_{subj}"):
                         selected_subjects.append(subj)
@@ -182,39 +188,31 @@ if st.button("🔍 수강신청 규정 검증하기", use_container_width=True):
     else:
         errors = []
         
-        # 1. 학기별 필수 선택 개수 검증
         for g_id, data in group_counts.items():
             if data['count'] != data['limit']:
                 errors.append(f"🚩 **선택 개수 오류**: {semester_mapping[g_id]} 영역에서 정확히 {data['limit']}과목을 선택해야 합니다. (현재 {data['count']}과목 선택됨)")
         
-        # 2. 위계 검증
         for subj in selected_subjects:
             if subj in hierarchy_rules:
                 pre_subj = hierarchy_rules[subj]
                 if pre_subj not in selected_subjects:
-                    errors.append(f"🚩 **위계 오류**: '{subj}'을(를) 수강하려면 1단계 선수 과목인 '{pre_subj}'을(를) 반드시 함께 선택해야 합니다.")
+                    errors.append(f"🚩 **위계 오류**: '{subj}'을(를) 수강하려면 1단계 선수 과목인 '{pre_subj}'을(를) 함께 선택해야 합니다.")
         
-        # 3. 국수영 8과목 제한 검증
         kme_count = len([s for s in selected_subjects if s in kme_subjects])
         if kme_count > 8:
             errors.append(f"🚩 **국/수/영 제한**: 선택한 국·수·영 과목이 {kme_count}개입니다. 최대 8과목(24학점)까지만 선택 가능합니다.")
 
-        # 4. 중복 수강 검증 (핵심: 양쪽 학기에 체크하면 여기서 걸러냄)
         for overlap_subj in overlap_list:
             if selected_subjects.count(overlap_subj) > 1:
                 errors.append(f"🚩 **중복 수강**: '{overlap_subj}' 과목을 2회 이상 체크했습니다. 중복 편성 과목은 3년간 1회만 수강 가능합니다.")
 
-        # 5. 기술·가정/정보/제2외국어/한문 필수 12학점(4과목) 검증
         tif_count = len([s for s in selected_subjects if s in tech_info_foreign_subjects])
         if tif_count < 4:
             errors.append(f"🚩 **필수 이수 부족**: 기/가·정보·제2외국어·한문 교과군에서 최소 4과목(12학점) 이상 선택해야 합니다. (현재 {tif_count}과목 선택됨)")
 
-        # 팝업창 호출
         show_result_dialog(errors)
         
-        # 하단 요약표 출력
         st.subheader(f"📋 {st.session_state.st_id} {st.session_state.st_name} 학생 수강신청 내역 요약")
-        
         summary_cols = st.columns(4)
         col_idx = 0
         for sem, subjs in selected_by_semester.items():
@@ -222,6 +220,7 @@ if st.button("🔍 수강신청 규정 검증하기", use_container_width=True):
                 st.markdown(f"**{sem}**")
                 if subjs:
                     for s in subjs:
+                        # 요약표에 출력할 때는 마크다운 기호 제거하여 깔끔하게 표시
                         st.write(f"- {s}")
                 else:
                     st.caption("선택 과목 없음")
