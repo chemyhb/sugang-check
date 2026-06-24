@@ -127,13 +127,13 @@ with col_info2:
 
 st.divider()
 
-# 🔥 [수정] 수강신청 전 필수 확인 사항 안내 박스 (긍정적 용어 반영)
+# 🔥 [수정] 수강신청 전 필수 확인 사항 안내 박스
 with st.expander("🚨 **[필독] 수강신청 시 반드시 고려해야 할 5가지 필수 조건 (클릭해서 확인)**", expanded=True):
     st.markdown("""
     1. **선수 과목(위계) 이수 필수**: 과학 및 제2외국어 교과의 심화 과목(진로/융합)을 들으려면, 반드시 해당 과목의 기초 과목(일반)을 함께 선택해야 합니다. *(예: '생물의 유전' 선택 시 '생명과학' 필수)*
     2. **국·수·영 균형 이수**: 다양한 교과 학습을 위해 국어, 수학, 영어 교과군에 속하는 선택 과목은 3년 동안 **최대 8과목(24학점)까지만** 선택할 수 있습니다.
     3. **필수 교과 영역 이수**: 기술·가정, 정보, 제2외국어, 한문 교과군 안에서 3년 동안 **최소 4과목(12학점) 이상**을 반드시 선택해야 합니다.
-    4. **중복 편성 과목 1회 수강**: 과목명 옆에 **🔄 표시가 있는 과목**은 여러 학기에 걸쳐 개설되어 있지만, **3년 동안 딱 한 학기에서만** 골라야 합니다.
+    4. **중복 편성 과목 1회 수강**: 과목명 옆에 **(중복)** 표시가 있는 과목은 여러 학기에 걸쳐 개설되어 있지만, **3년 동안 딱 한 학기에서만** 골라야 합니다.
     5. **학기별 정해진 과목 수 준수**: 각 학기별로 [택 5], [택 1] 등 정해진 필수 선택 개수를 정확히 맞춰야 합니다.
     """)
 
@@ -176,7 +176,8 @@ sem_groups = [g for g, info in groups_info.items() if info["semester"] == curren
 for g_name in sem_groups:
     info = groups_info[g_name]
     st.markdown(f"#### {info['title']}")
-    st.write(f"최대 **{info['limit']}과목**을 선택해야 합니다. 굵은 글씨(🔄)는 중복 편성 과목입니다.")
+    # 🔥 [수정] 안내 멘트 변경
+    st.write(f"최대 **{info['limit']}과목**을 선택해야 합니다. 굵은 글씨의 **(중복)** 과목은 3년 동안 한 번만 수강할 수 있습니다.")
     
     current_count = len(st.session_state[f"selected_{g_name}"])
     if current_count == info['limit']:
@@ -203,7 +204,8 @@ for g_name in sem_groups:
             cols = st.columns(3) 
             for idx, (subj, tag) in enumerate(items):
                 with cols[idx % 3]:
-                    display_name = f"**{subj}** 🔄" if subj in overlap_list else subj
+                    # 🔥 [수정] 이모지 제거하고 텍스트 (중복) 추가
+                    display_name = f"**{subj} (중복)**" if subj in overlap_list else subj
                     is_checked = subj in st.session_state[f"selected_{g_name}"]
                     if st.checkbox(f"[{tag}] {display_name}", value=is_checked, key=f"chk_{g_name}_{subj}"):
                         if subj not in st.session_state[f"selected_{g_name}"]:
@@ -294,7 +296,6 @@ if st.button("🚀 최종 수강신청 검증하기", use_container_width=True, 
                 if pre_subj not in all_selected:
                     errors.append(f"🚩 **[과목 위계 오류]** \n👉 '{subj}'을(를) 수강하려면 반드시 '{pre_subj}'을(를) 함께 들어야 합니다. **'{pre_subj}'을(를) 추가로 체크**하거나, **'{subj}' 선택을 취소**해 주세요.")
         
-        # 🔥 [수정] 긍정적이고 부드러운 용어로 에러 메시지 변경
         kme_selected = [s for s in all_selected if s in kme_subjects]
         if len(kme_selected) > 8:
             excess = len(kme_selected) - 8
