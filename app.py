@@ -86,11 +86,30 @@ def show_result_dialog(errors):
         st.info("이대로 실제 수강신청 시스템에 입력하시면 됩니다.")
 
 # ==========================================
+# 페이지 이동용 Session State 및 함수
+# ==========================================
+semester_tabs = ["2학년 1학기", "2학년 2학기", "3학년 1학기", "3학년 2학기"]
+
+if 'current_sem_idx' not in st.session_state:
+    st.session_state.current_sem_idx = 0
+
+def go_next():
+    if st.session_state.current_sem_idx < len(semester_tabs) - 1:
+        st.session_state.current_sem_idx += 1
+
+def go_prev():
+    if st.session_state.current_sem_idx > 0:
+        st.session_state.current_sem_idx -= 1
+
+def update_sem_from_radio():
+    st.session_state.current_sem_idx = semester_tabs.index(st.session_state.sem_radio)
+
+# ==========================================
 # 3. 화면 UI 
 # ==========================================
 st.set_page_config(page_title="2026 수강신청 검증", layout="wide")
 st.title("📚 2026학년도 수강신청 사전 검증")
-st.caption("아래 탭에서 과목을 선택하면 상단의 [본인 선택 과목 요약표]에 실시간으로 반영됩니다.")
+st.caption("과목을 모두 선택한 후 하단의 [다음 학기] 버튼을 눌러 이동하세요. 최종 요약표는 맨 아래에 있습니다.")
 
 col_info1, col_info2, col_empty = st.columns([1, 1, 3])
 with col_info1:
@@ -105,12 +124,98 @@ for group in groups_info.keys():
         st.session_state[f"selected_{group}"] = []
 
 # ==========================================
-# [본인 선택 과목] (상단 요약표 확인) -> 위로 이동 완료!
+# [수강신청 과목 선택 영역]
+# ==========================================
+st.subheader("📝 과목 선택")
+
+# 상단 진행바(라디오 버튼) - 원하는 학기로 바로 점프도 가능
+selected_sem = st.radio(
+    "학기 이동 (진행 상황)", 
+    semester_tabs, 
+    key="sem_radio", 
+    index=st.session_state.current_sem_idx, 
+    on_change=update_sem_from_radio,
+    horizontal=True,
+    label_visibility="collapsed"
+)
+
+current_sem = semester_tabs[st.session_state.current_sem_idx]
+st.markdown(f"### ➡️ {current_sem}")
+
+cat_order_list = ['국어', '수학', '영어', '사회', '과학', '기술·가정/정보/제2외국어', '체육', '예술', '교양']
+sort_order = {'일반': 1, '진로': 2, '융합': 3, '교양': 4}
+
+def get_cat_order(cat):
+    if cat in cat_order_list:
+        return cat_order_list.index(cat)
+    return 99
+
+# 현재 학기의 과목 그룹들 렌더링
+sem_groups = [g for g, info in groups_info.items() if info["semester"] == current_sem]
+
+for g_name in sem_groups:
+    info = groups_info[g_name]
+    st.markdown(f"#### {info['title']}")
+    st.write(f"최대 **{info['limit']}과목**을 선택해야 합니다. 굵은 글씨(🔄)는 중복 편성 과목입니다.")
+    
+    current_count = len(st.session_state[f"selected_{g_name}"])
+    if current_count == info['limit']:
+        st.success(f"✅ {current_count}/{info['limit']} 선택 완료")
+    elif current_count > info['limit']:
+        st.error(f"❌ {current_count}/{info['limit']} 초과 선택!")
+    else:
+        st.info(f"👉 {current_count}/{info['limit']} 선택 중")
+
+    cat_dict = {}
+    for subj, tag, cat in subject_list[g_name]:
+        if cat not in cat_dict:
+            cat_dict[cat] = []
+        cat_dict[cat].append((subj, tag))
+
+    sorted_cats = sorted(cat_dict.keys(), key=get_cat_order)
+
+    for cat in sorted_cats:
+        items = cat_dict[cat]
+        items.sort(key=lambda x: (sort_order.get(x[1], 99), x[0]))
+        
+        with st.container(border=True):
+            st.markdown(f"**🔹 {cat}**")
+            cols = st.columns(3) 
+            for idx, (subj, tag) in enumerate(items):
+                with cols[idx % 3]:
+                    display_name = f"**{subj}** 🔄" if subj in overlap_list else subj
+                    is_checked = subj in st.session_state[f"selected_{g_name}"]
+                    if st.checkbox(f"[{tag}] {display_name}", value=is_checked, key=f"chk_{g_name}_{subj}"):
+                        if subj not in st.session_state[f"selected_{g_name}"]:
+                            st.session_state[f"selected_{g_name}"].append(subj)
+                            st.rerun()
+                    else:
+                        if subj in st.session_state[f"selected_{g_name}"]:
+                            st.session_state[f"selected_{g_name}"].remove(subj)
+                            st.rerun()
+    st.write("") 
+
+# --- 하단 페이지 이동 버튼 (이전 / 다음) ---
+st.markdown("<br>", unsafe_allow_html=True) # 약간의 여백
+col_prev, col_space, col_next = st.columns([1, 2, 1])
+
+with col_prev:
+    if st.session_state.current_sem_idx > 0:
+        prev_name = semester_tabs[st.session_state.current_sem_idx - 1]
+        st.button(f"⬅️ 이전 학기 ({prev_name})", on_click=go_prev, use_container_width=True)
+
+with col_next:
+    if st.session_state.current_sem_idx < len(semester_tabs) - 1:
+        next_name = semester_tabs[st.session_state.current_sem_idx + 1]
+        st.button(f"다음 학기 ({next_name}) ➡️", on_click=go_next, use_container_width=True, type="primary")
+
+st.divider()
+
+# ==========================================
+# [본인 선택 과목] (하단 요약표 확인) -> 선생님 요청대로 맨 아래에 배치!
 # ==========================================
 st.subheader("📋 본인 선택 과목 확인")
-st.write("아래에서 선택한 과목이 맞는지 최종 확인하세요.")
-
-semester_tabs = ["2학년 1학기", "2학년 2학기", "3학년 1학기", "3학년 2학기"]
+st.write("위에서 선택한 학기별 전체 과목이 맞는지 한눈에 점검하세요.")
 
 sum_cols = st.columns(4)
 col_idx = 0
@@ -138,84 +243,15 @@ for sem in semester_tabs:
 st.divider()
 
 # ==========================================
-# [수강신청 과목 선택] (하단 학기별 탭 동선 최적화) -> 아래로 이동 완료!
-# ==========================================
-st.subheader("📝 과목 선택")
-
-tabs = st.tabs(semester_tabs)
-
-# 정렬 순서 정의 (교과군 및 유형)
-cat_order_list = ['국어', '수학', '영어', '사회', '과학', '기술·가정/정보/제2외국어', '체육', '예술', '교양']
-sort_order = {'일반': 1, '진로': 2, '융합': 3, '교양': 4}
-
-def get_cat_order(cat):
-    if cat in cat_order_list:
-        return cat_order_list.index(cat)
-    return 99
-
-for i, sem in enumerate(semester_tabs):
-    with tabs[i]:
-        # 해당 학기에 속하는 하위 그룹(택5, 택1 등)들을 순서대로 렌더링
-        sem_groups = [g for g, info in groups_info.items() if info["semester"] == sem]
-        
-        for g_name in sem_groups:
-            info = groups_info[g_name]
-            st.markdown(f"#### {info['title']}")
-            st.write(f"최대 **{info['limit']}과목**을 선택해야 합니다. 굵은 글씨(🔄)는 중복 편성 과목입니다.")
-            
-            current_count = len(st.session_state[f"selected_{g_name}"])
-            if current_count == info['limit']:
-                st.success(f"✅ {current_count}/{info['limit']} 선택 완료")
-            elif current_count > info['limit']:
-                st.error(f"❌ {current_count}/{info['limit']} 초과 선택!")
-            else:
-                st.info(f"👉 {current_count}/{info['limit']} 선택 중")
-
-            # 교과군(카테고리)별로 분류
-            cat_dict = {}
-            for subj, tag, cat in subject_list[g_name]:
-                if cat not in cat_dict:
-                    cat_dict[cat] = []
-                cat_dict[cat].append((subj, tag))
-
-            # 교과군 순서대로 정렬 (국, 수, 영, 사, 과...)
-            sorted_cats = sorted(cat_dict.keys(), key=get_cat_order)
-
-            for cat in sorted_cats:
-                items = cat_dict[cat]
-                # 과목 유형별(일반 -> 진로 -> 융합) 정렬 후 가나다순 정렬
-                items.sort(key=lambda x: (sort_order.get(x[1], 99), x[0]))
-                
-                with st.container(border=True):
-                    st.markdown(f"**🔹 {cat}**")
-                    cols = st.columns(3) 
-                    for idx, (subj, tag) in enumerate(items):
-                        with cols[idx % 3]:
-                            display_name = f"**{subj}** 🔄" if subj in overlap_list else subj
-                            is_checked = subj in st.session_state[f"selected_{g_name}"]
-                            if st.checkbox(f"[{tag}] {display_name}", value=is_checked, key=f"chk_{g_name}_{subj}"):
-                                if subj not in st.session_state[f"selected_{g_name}"]:
-                                    st.session_state[f"selected_{g_name}"].append(subj)
-                                    st.rerun()
-                            else:
-                                if subj in st.session_state[f"selected_{g_name}"]:
-                                    st.session_state[f"selected_{g_name}"].remove(subj)
-                                    st.rerun()
-            st.write("") # 영역 간 간격 띄우기
-
-st.divider()
-
-# ==========================================
-# 4. 스마트 최종 검증 (해결책 제시형)
+# 4. 스마트 최종 검증 
 # ==========================================
 if st.button("🚀 최종 수강신청 검증하기", use_container_width=True, type="primary"):
     if not st_id or not st_name:
-        st.error("⚠️ 상단에 학번과 성명을 먼저 입력해 주세요.")
+        st.error("⚠️ 맨 위로 올라가서 학번과 성명을 먼저 입력해 주세요.")
     else:
         errors = []
         all_selected = []
         
-        # 1. 개수 검증 (How to fix 추가)
         for g_name, info in groups_info.items():
             selected = st.session_state[f"selected_{g_name}"]
             all_selected.extend(selected)
@@ -225,29 +261,24 @@ if st.button("🚀 최종 수강신청 검증하기", use_container_width=True, 
             elif diff < 0:
                 errors.append(f"🚩 **[{info['semester']} {info['title']} 부족]** \n👉 {info['limit']}과목을 선택해야 하는데 {len(selected)}과목만 선택했습니다. **{-diff}과목을 더 체크**해 주세요.")
 
-        # 2. 위계 검증 (How to fix 추가)
         for subj in all_selected:
             if subj in hierarchy_rules:
                 pre_subj = hierarchy_rules[subj]
                 if pre_subj not in all_selected:
                     errors.append(f"🚩 **[과목 위계 오류]** \n👉 '{subj}'을(를) 수강하려면 반드시 '{pre_subj}'을(를) 함께 들어야 합니다. **'{pre_subj}'을(를) 추가로 체크**하거나, **'{subj}' 선택을 취소**해 주세요.")
         
-        # 3. 국수영 8과목 제한 검증 (How to fix 추가)
         kme_selected = [s for s in all_selected if s in kme_subjects]
         if len(kme_selected) > 8:
             excess = len(kme_selected) - 8
             errors.append(f"🚩 **[국/수/영 편중 오류]** \n👉 국/수/영 과목을 {len(kme_selected)}개 선택하여 최대 한도(8과목)를 넘었습니다. 선택하신 국/수/영 과목 중 **{excess}과목을 취소하고 탐구 등 다른 교과군으로 변경**해 주세요.")
 
-        # 4. 중복 수강 검증 (How to fix 추가)
         for overlap_subj in overlap_list:
             if all_selected.count(overlap_subj) > 1:
                 errors.append(f"🚩 **[중복 수강 오류]** \n👉 '{overlap_subj}' 과목을 2회 이상 선택했습니다. 이 과목은 3년 동안 딱 1번만 들을 수 있습니다. **하나의 학기에서만 남기고 나머지는 체크 해제**해 주세요.")
 
-        # 5. 필수 12학점 검증 (How to fix 추가)
         tif_selected = [s for s in all_selected if s in tech_info_foreign_subjects]
         if len(tif_selected) < 4:
             shortage = 4 - len(tif_selected)
             errors.append(f"🚩 **[필수 교과 이수 부족]** \n👉 졸업을 위해 기술·가정/정보/제2외국어/한문 영역에서 최소 4과목을 챙겨야 하는데 {len(tif_selected)}과목만 담았습니다. **해당 영역에서 {shortage}과목을 더 추가**해 주세요.")
 
-        # 결과 팝업 호출
         show_result_dialog(errors)
