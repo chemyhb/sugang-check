@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import requests
 
 # ==========================================
 # 1. 고정 데이터 및 규정 설정
@@ -82,23 +83,20 @@ subject_list = {
 }
 
 @st.dialog("🔔 수강신청 조건 확인 결과")
-def show_result_dialog(errors):
-    if errors:
-        st.error(f"❌ 총 {len(errors)}건의 안내 사항이 있습니다. 아래 내용을 확인하여 과목을 조정해 주세요.")
-        for e in errors:
-            st.warning(e)
-    else:
-        st.success("✅ 축하합니다! 모든 졸업 필수 요건과 과목 위계 조건을 충족했습니다.")
-        st.balloons()
-        st.info("이대로 실제 수강신청 시스템에 입력하시면 됩니다.")
+def show_error_dialog(errors):
+    st.error(f"❌ 총 {len(errors)}건의 안내 사항이 있습니다. 아래 내용을 확인하여 과목을 조정해 주세요.")
+    for e in errors:
+        st.warning(e)
 
 # ==========================================
-# 페이지 이동용 Session State 및 함수
+# Session State 및 함수
 # ==========================================
 semester_tabs = ["2학년 1학기", "2학년 2학기", "3학년 1학기", "3학년 2학기"]
 
 if 'current_sem_idx' not in st.session_state:
     st.session_state.current_sem_idx = 0
+if 'is_valid' not in st.session_state:
+    st.session_state.is_valid = False
 
 def set_tab(idx):
     st.session_state.current_sem_idx = idx
@@ -116,13 +114,15 @@ def go_prev():
 # ==========================================
 st.set_page_config(page_title="수강신청 사전 진단", layout="wide")
 st.title("📚 2026학년도 입학생 수강신청 사전 진단 시스템")
-st.caption("각 학기 탭에서 과목을 모두 선택한 후, 하단의 [다음 학기] 버튼을 눌러 이동하세요. 최종 조건 확인 버튼은 맨 아래에 있습니다.")
+st.caption("각 학기 탭에서 과목을 모두 선택한 후, 하단의 [조건 확인] 버튼을 눌러 통과하면 데이터를 제출할 수 있습니다.")
 
-col_info1, col_info2, col_empty = st.columns([1, 1, 3])
-with col_info1:
-    st_id = st.text_input("학번", placeholder="예: 10101")
-with col_info2:
-    st_name = st.text_input("성명")
+col_class, col_num, col_name, col_empty = st.columns([1, 1, 2, 2])
+with col_class:
+    st_class = st.selectbox("반", [f"{i}반" for i in range(1, 16)]) 
+with col_num:
+    st_num = st.selectbox("번호", [f"{i}번" for i in range(1, 41)]) 
+with col_name:
+    st_name = st.text_input("성명", placeholder="예: 홍길동")
 
 st.divider()
 
@@ -146,16 +146,13 @@ for group in groups_info.keys():
 # ==========================================
 st.subheader("📝 과목 선택")
 
-# 🔥 [변경] 라디오 단추를 없애고 깔끔한 커스텀 버튼 탭으로 변경!
 tab_cols = st.columns(len(semester_tabs))
 for i, sem in enumerate(semester_tabs):
     with tab_cols[i]:
-        # 현재 활성화된 탭만 파란색(primary)으로 칠해서 진짜 탭처럼 보이게 만듭니다.
         btn_type = "primary" if st.session_state.current_sem_idx == i else "secondary"
         st.button(sem, key=f"tab_btn_{i}", type=btn_type, use_container_width=True, on_click=set_tab, args=(i,))
 
 current_sem = semester_tabs[st.session_state.current_sem_idx]
-
 st.markdown(f"### ➡️ {current_sem}")
 
 cat_order_list = ['국어', '수학', '영어', '사회', '과학', '기술·가정/정보/제2외국어', '체육', '예술', '교양']
@@ -203,14 +200,15 @@ for g_name in sem_groups:
                     if st.checkbox(f"[{tag}] {display_name}", value=is_checked, key=f"chk_{g_name}_{subj}"):
                         if subj not in st.session_state[f"selected_{g_name}"]:
                             st.session_state[f"selected_{g_name}"].append(subj)
+                            st.session_state.is_valid = False
                             st.rerun()
                     else:
                         if subj in st.session_state[f"selected_{g_name}"]:
                             st.session_state[f"selected_{g_name}"].remove(subj)
+                            st.session_state.is_valid = False
                             st.rerun()
     st.write("") 
 
-# --- 하단 페이지 이동 버튼 (이전 / 다음) ---
 st.markdown("<br>", unsafe_allow_html=True)
 col_prev, col_space, col_next = st.columns([1, 2, 1])
 
@@ -227,7 +225,7 @@ with col_next:
 st.divider()
 
 # ==========================================
-# [본인 전체 시간표 확인]
+# [본인 선택 과목 확인 및 학점 요약]
 # ==========================================
 st.subheader("📋 수강 신청 조건 및 선택 과목 확인")
 st.write("학교 지정(필수) 과목과 본인이 선택한 과목, 그리고 학점을 최종 확인하세요.")
@@ -240,13 +238,11 @@ for sem in semester_tabs:
         sem_subjects = []
         sem_total_credit = 0
         
-        # 1. 학교 지정 과목
         if sem in mandatory_subjects:
             for tag, subj, credit in mandatory_subjects[sem]:
                 sem_subjects.append({"과목명": f"🔒 {tag} {subj} (지정)", "학점": credit})
                 sem_total_credit += credit
                 
-        # 2. 본인 선택 과목
         for g_name, g_info in groups_info.items():
             if g_info["semester"] == sem:
                 group_credit = g_info["credit"]
@@ -270,11 +266,11 @@ for sem in semester_tabs:
 st.divider()
 
 # ==========================================
-# 4. 스마트 사전 진단 로직
+# 4. 스마트 사전 진단 로직 및 구글 시트 웹앱 제출
 # ==========================================
-if st.button("🚀 수강신청 조건 최종 확인하기", use_container_width=True, type="primary"):
-    if not st_id or not st_name:
-        st.error("⚠️ 상단으로 이동하여 학번과 성명을 먼저 입력해 주세요.")
+if st.button("🚀 수강신청 조건 최종 확인하기", use_container_width=True):
+    if not st_name.strip():
+        st.error("⚠️ 맨 위로 올라가서 성명을 정확히 입력해 주세요.")
     else:
         errors = []
         all_selected = []
@@ -313,4 +309,37 @@ if st.button("🚀 수강신청 조건 최종 확인하기", use_container_width
             shortage = 4 - len(tif_selected)
             errors.append(f"🚩 **[필수 교과 영역 미충족]** \n👉 졸업 요건을 위해 기술·가정/정보/제2외국어/한문 영역에서 최소 4과목 선택이 필요합니다. **해당 영역에서 {shortage}과목을 더 추가**해 주세요.")
 
-        show_result_dialog(errors)
+        if errors:
+            st.session_state.is_valid = False
+            show_error_dialog(errors)
+        else:
+            st.session_state.is_valid = True
+            st.rerun()
+
+if st.session_state.is_valid:
+    st.success("✅ 축하합니다! 모든 수강신청 조건을 완벽하게 충족했습니다. 아래 버튼을 눌러 데이터를 제출해 주세요.")
+    
+    if st.button("📥 수강신청 데이터 제출하기", use_container_width=True, type="primary"):
+        
+        # 📌📌 [매우 중요] 아래에 구글 앱스 스크립트 '웹 앱 URL'을 꼭 붙여넣으세요! 📌📌
+        GAS_URL = "선생님의_웹앱_URL을_여기에_붙여넣으세요"
+        
+        def get_sem_str(sem):
+            subjs = []
+            for g_name, info in groups_info.items():
+                if info["semester"] == sem:
+                    subjs.extend(st.session_state[f"selected_{g_name}"])
+            return ", ".join(subjs)
+        
+        payload = {
+            "class_name": st_class,
+            "student_num": st_num,
+            "student_name": st_name,
+            "sem2_1": get_sem_str("2학년 1학기"),
+            "sem2_2": get_sem_str("2학년 2학기"),
+            "sem3_1": get_sem_str("3학년 1학기"),
+            "sem3_2": get_sem_str("3학년 2학기")
+        }
+        
+        try:
+            response = requests.post(GAS_URL = "https://script.google.com/macros/s/AKfycbz72qQlrmowO96M1CeJZpQhyywFWBS0w1Sq-xud--G42DtYfpg_Ti8p3f-5iQmd2gh4/exec", json=payload
