@@ -41,7 +41,6 @@ groups_info = {
     "3-2 교양 [택1]": {"limit": 1, "semester": "3학년 2학기"}
 }
 
-# 모바일 가독성을 위해 교과군 이름을 더 명확하게 수정했습니다.
 subject_list = {
     "2-1 [택5]": [
         ('독서 토론과 글쓰기', '융합', '국어'), ('인공지능 수학', '진로', '수학'), ('세계 문화와 영어', '융합', '영어'),
@@ -87,7 +86,7 @@ def show_result_dialog(errors):
         st.info("이대로 실제 수강신청 시스템에 입력하시면 됩니다.")
 
 # ==========================================
-# 3. 화면 UI (리로스쿨 스타일 + 교과군 분류)
+# 3. 화면 UI (리로스쿨 스타일 + 교과군 분류 + 위계 자동 정렬)
 # ==========================================
 st.set_page_config(page_title="2026 수강신청 검증", layout="wide")
 st.title("📚 2026학년도 수강신청 사전 검증")
@@ -139,12 +138,14 @@ st.subheader("📝 과목 선택 (수요조사)")
 
 tabs = st.tabs(list(groups_info.keys()))
 
+# 🔥 과목 유형별 정렬 순서 정의 (일반 -> 진로 -> 융합 -> 교양) 🔥
+sort_order = {'일반': 1, '진로': 2, '융합': 3, '교양': 4}
+
 for i, (group_name, info) in enumerate(groups_info.items()):
     with tabs[i]:
         st.markdown(f"#### {info['semester']} - {group_name.split(' ')[-1]}")
         st.write(f"최대 **{info['limit']}과목**을 선택해야 합니다. 굵은 글씨(🔄)는 중복 편성 과목입니다.")
         
-        # 선택된 과목 수를 시각적으로 표시
         current_count = len(st.session_state[f"selected_{group_name}"])
         if current_count == info['limit']:
             st.success(f"✅ {current_count}/{info['limit']} 선택 완료")
@@ -153,25 +154,26 @@ for i, (group_name, info) in enumerate(groups_info.items()):
         else:
             st.info(f"👉 {current_count}/{info['limit']} 선택 중")
 
-        # 🔥 교과군(카테고리)별로 묶어서 표시하는 로직 추가 🔥
-        # 해당 학기(탭)의 과목들을 교과군별로 분류
+        # 교과군(카테고리)별로 분류
         cat_dict = {}
         for subj, tag, cat in subject_list[group_name]:
             if cat not in cat_dict:
                 cat_dict[cat] = []
             cat_dict[cat].append((subj, tag))
 
-        # 분류된 교과군별로 박스(container)를 만들어 깔끔하게 정리
+        # 분류된 교과군별 박스 생성
         for cat, items in cat_dict.items():
+            # 🔥 내부 과목들을 '일반 -> 진로 -> 융합' 순서로 자동 정렬 🔥
+            items.sort(key=lambda x: sort_order.get(x[1], 99))
+            
             with st.container(border=True):
                 st.markdown(f"**🔹 {cat}**")
-                cols = st.columns(3) # PC에서는 3열, 모바일에서는 자동으로 1열로 예쁘게 내려갑니다.
+                cols = st.columns(3) 
                 for idx, (subj, tag) in enumerate(items):
                     with cols[idx % 3]:
-                        # 중복 과목 강조
+                        # 중복 과목 시각적 강조
                         display_name = f"**{subj}** 🔄" if subj in overlap_list else subj
                         
-                        # 체크박스 생성 및 실시간 갱신 로직
                         is_checked = subj in st.session_state[f"selected_{group_name}"]
                         if st.checkbox(f"[{tag}] {display_name}", value=is_checked, key=f"chk_{group_name}_{subj}"):
                             if subj not in st.session_state[f"selected_{group_name}"]:
