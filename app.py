@@ -30,6 +30,14 @@ hierarchy_rules = {
     '일본어 회화': '일본어', '심화 일본어': '일본어'
 }
 
+# 📌 [추가] 학기별 학교 지정(필수) 과목 리스트
+mandatory_subjects = {
+    "2학년 1학기": [("[일반]", "문학"), ("[일반]", "대수"), ("[일반]", "영어Ⅰ"), ("[융합]", "스포츠 생활1")],
+    "2학년 2학기": [("[일반]", "독서와 작문"), ("[일반]", "미적분Ⅰ"), ("[일반]", "영어Ⅱ"), ("[융합]", "스포츠 생활2")],
+    "3학년 1학기": [("[일반]", "화법과 언어"), ("[일반]", "확률과 통계"), ("[진로]", "스포츠 문화*")],
+    "3학년 2학기": [("[진로]", "스포츠 과학*")]
+}
+
 groups_info = {
     "2-1 [택5]": {"limit": 5, "semester": "2학년 1학기", "title": "📌 3학점 × 5과목 선택"},
     "2-1 예술 [택1]": {"limit": 1, "semester": "2학년 1학기", "title": "📌 예술 2학점 × 1과목 선택"},
@@ -128,7 +136,7 @@ for group in groups_info.keys():
 # ==========================================
 st.subheader("📝 과목 선택")
 
-# 상단 진행바(라디오 버튼) - 원하는 학기로 바로 점프도 가능
+# 상단 진행바(라디오 버튼)
 selected_sem = st.radio(
     "학기 이동 (진행 상황)", 
     semester_tabs, 
@@ -196,7 +204,7 @@ for g_name in sem_groups:
     st.write("") 
 
 # --- 하단 페이지 이동 버튼 (이전 / 다음) ---
-st.markdown("<br>", unsafe_allow_html=True) # 약간의 여백
+st.markdown("<br>", unsafe_allow_html=True)
 col_prev, col_space, col_next = st.columns([1, 2, 1])
 
 with col_prev:
@@ -212,10 +220,10 @@ with col_next:
 st.divider()
 
 # ==========================================
-# [본인 선택 과목] (하단 요약표 확인) -> 선생님 요청대로 맨 아래에 배치!
+# [본인 전체 시간표] (학교 지정 + 선택 과목 요약)
 # ==========================================
-st.subheader("📋 본인 선택 과목 확인")
-st.write("위에서 선택한 학기별 전체 과목이 맞는지 한눈에 점검하세요.")
+st.subheader("📋 전체 수강 과목 확인")
+st.write("학교 지정(필수) 과목과 본인이 선택한 과목이 합쳐진 전체 시간표입니다.")
 
 sum_cols = st.columns(4)
 col_idx = 0
@@ -223,6 +231,13 @@ for sem in semester_tabs:
     with sum_cols[col_idx]:
         st.markdown(f"**{sem}**")
         sem_subjects = []
+        
+        # 1. 학교 지정 과목 먼저 추가 (자물쇠 아이콘)
+        if sem in mandatory_subjects:
+            for tag, subj in mandatory_subjects[sem]:
+                sem_subjects.append(f"🔒 {tag} {subj} (지정)")
+                
+        # 2. 본인 선택 과목 추가 (체크 아이콘)
         for g_name, g_info in groups_info.items():
             if g_info["semester"] == sem:
                 for subj in st.session_state[f"selected_{g_name}"]:
@@ -231,13 +246,13 @@ for sem in semester_tabs:
                         if s == subj:
                             tag = t
                             break
-                    sem_subjects.append(f"[{tag}] {subj}")
+                    sem_subjects.append(f"✅ [{tag}] {subj}")
         
         if sem_subjects:
-            df_display = pd.DataFrame(sem_subjects, columns=["선택 과목"])
+            df_display = pd.DataFrame(sem_subjects, columns=["수강 예정 과목"])
             st.dataframe(df_display, hide_index=True, use_container_width=True)
         else:
-            st.caption("선택 내역 없음")
+            st.caption("내역 없음")
     col_idx += 1
 
 st.divider()
