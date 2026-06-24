@@ -30,15 +30,16 @@ hierarchy_rules = {
     '일본어 회화': '일본어', '심화 일본어': '일본어'
 }
 
+# 그룹 및 학기 정보
 groups_info = {
-    "2-1 [택5]": {"limit": 5, "semester": "2학년 1학기"},
-    "2-1 예술 [택1]": {"limit": 1, "semester": "2학년 1학기 예술"},
-    "2-2 [택5]": {"limit": 5, "semester": "2학년 2학기"},
-    "2-2 예술 [택1]": {"limit": 1, "semester": "2학년 2학기 예술"},
-    "3-1 [택5]": {"limit": 5, "semester": "3학년 1학기"},
-    "3-1 교양 [택1]": {"limit": 1, "semester": "3학년 1학기 교양"},
-    "3-2 [택8]": {"limit": 8, "semester": "3학년 2학기"},
-    "3-2 교양 [택1]": {"limit": 1, "semester": "3학년 2학기 교양"}
+    "2-1 [택5]": {"limit": 5, "semester": "2학년 1학기", "title": "📌 3학점 × 5과목 선택"},
+    "2-1 예술 [택1]": {"limit": 1, "semester": "2학년 1학기", "title": "📌 예술 2학점 × 1과목 선택"},
+    "2-2 [택5]": {"limit": 5, "semester": "2학년 2학기", "title": "📌 3학점 × 5과목 선택"},
+    "2-2 예술 [택1]": {"limit": 1, "semester": "2학년 2학기", "title": "📌 예술 2학점 × 1과목 선택"},
+    "3-1 [택5]": {"limit": 5, "semester": "3학년 1학기", "title": "📌 3학점 × 5과목 선택"},
+    "3-1 교양 [택1]": {"limit": 1, "semester": "3학년 1학기", "title": "📌 교양/예술 2학점 × 1과목 선택"},
+    "3-2 [택8]": {"limit": 8, "semester": "3학년 2학기", "title": "📌 3학점 × 8과목 선택"},
+    "3-2 교양 [택1]": {"limit": 1, "semester": "3학년 2학기", "title": "📌 교양 2학점 × 1과목 선택"}
 }
 
 subject_list = {
@@ -86,11 +87,11 @@ def show_result_dialog(errors):
         st.info("이대로 실제 수강신청 시스템에 입력하시면 됩니다.")
 
 # ==========================================
-# 3. 화면 UI (리로스쿨 스타일 + 교과군 분류 + 위계 자동 정렬)
+# 3. 화면 UI 
 # ==========================================
 st.set_page_config(page_title="2026 수강신청 검증", layout="wide")
 st.title("📚 2026학년도 수강신청 사전 검증")
-st.caption("아래 탭에서 과목을 선택하면 하단의 [본인 선택 과목] 영역에 실시간으로 반영됩니다.")
+st.caption("아래 탭에서 과목을 선택하면 하단의 [본인 선택 과목 요약표]에 실시간으로 반영됩니다.")
 
 col_info1, col_info2, col_empty = st.columns([1, 1, 3])
 with col_info1:
@@ -105,75 +106,94 @@ for group in groups_info.keys():
         st.session_state[f"selected_{group}"] = []
 
 # ==========================================
-# [수강신청 과목 선택] (상단 탭 형식 폼)
+# [수강신청 과목 선택] (학기별 탭 동선 최적화)
 # ==========================================
 st.subheader("📝 과목 선택")
 
-tabs = st.tabs(list(groups_info.keys()))
+semester_tabs = ["2학년 1학기", "2학년 2학기", "3학년 1학기", "3학년 2학기"]
+tabs = st.tabs(semester_tabs)
+
+# 정렬 순서 정의 (교과군 및 유형)
+cat_order_list = ['국어', '수학', '영어', '사회', '과학', '기술·가정/정보/제2외국어', '체육', '예술', '교양']
 sort_order = {'일반': 1, '진로': 2, '융합': 3, '교양': 4}
 
-for i, (group_name, info) in enumerate(groups_info.items()):
+def get_cat_order(cat):
+    if cat in cat_order_list:
+        return cat_order_list.index(cat)
+    return 99
+
+for i, sem in enumerate(semester_tabs):
     with tabs[i]:
-        st.markdown(f"#### {info['semester']}")
-        st.write(f"최대 **{info['limit']}과목**을 선택해야 합니다. 굵은 글씨(🔄)는 중복 편성 과목입니다.")
+        # 해당 학기에 속하는 하위 그룹(택5, 택1 등)들을 순서대로 렌더링
+        sem_groups = [g for g, info in groups_info.items() if info["semester"] == sem]
         
-        current_count = len(st.session_state[f"selected_{group_name}"])
-        if current_count == info['limit']:
-            st.success(f"✅ {current_count}/{info['limit']} 선택 완료")
-        elif current_count > info['limit']:
-            st.error(f"❌ {current_count}/{info['limit']} 초과 선택!")
-        else:
-            st.info(f"👉 {current_count}/{info['limit']} 선택 중")
-
-        cat_dict = {}
-        for subj, tag, cat in subject_list[group_name]:
-            if cat not in cat_dict:
-                cat_dict[cat] = []
-            cat_dict[cat].append((subj, tag))
-
-        for cat, items in cat_dict.items():
-            items.sort(key=lambda x: sort_order.get(x[1], 99))
+        for g_name in sem_groups:
+            info = groups_info[g_name]
+            st.markdown(f"#### {info['title']}")
+            st.write(f"최대 **{info['limit']}과목**을 선택해야 합니다. 굵은 글씨(🔄)는 중복 편성 과목입니다.")
             
-            with st.container(border=True):
-                st.markdown(f"**🔹 {cat}**")
-                cols = st.columns(3) 
-                for idx, (subj, tag) in enumerate(items):
-                    with cols[idx % 3]:
-                        display_name = f"**{subj}** 🔄" if subj in overlap_list else subj
-                        is_checked = subj in st.session_state[f"selected_{group_name}"]
-                        if st.checkbox(f"[{tag}] {display_name}", value=is_checked, key=f"chk_{group_name}_{subj}"):
-                            if subj not in st.session_state[f"selected_{group_name}"]:
-                                st.session_state[f"selected_{group_name}"].append(subj)
-                                st.rerun()
-                        else:
-                            if subj in st.session_state[f"selected_{group_name}"]:
-                                st.session_state[f"selected_{group_name}"].remove(subj)
-                                st.rerun()
+            current_count = len(st.session_state[f"selected_{g_name}"])
+            if current_count == info['limit']:
+                st.success(f"✅ {current_count}/{info['limit']} 선택 완료")
+            elif current_count > info['limit']:
+                st.error(f"❌ {current_count}/{info['limit']} 초과 선택!")
+            else:
+                st.info(f"👉 {current_count}/{info['limit']} 선택 중")
+
+            # 교과군(카테고리)별로 분류
+            cat_dict = {}
+            for subj, tag, cat in subject_list[g_name]:
+                if cat not in cat_dict:
+                    cat_dict[cat] = []
+                cat_dict[cat].append((subj, tag))
+
+            # 교과군 순서대로 정렬 (국, 수, 영, 사, 과...)
+            sorted_cats = sorted(cat_dict.keys(), key=get_cat_order)
+
+            for cat in sorted_cats:
+                items = cat_dict[cat]
+                # 과목 유형별(일반 -> 진로 -> 융합) 정렬 후 가나다순 정렬
+                items.sort(key=lambda x: (sort_order.get(x[1], 99), x[0]))
+                
+                with st.container(border=True):
+                    st.markdown(f"**🔹 {cat}**")
+                    cols = st.columns(3) 
+                    for idx, (subj, tag) in enumerate(items):
+                        with cols[idx % 3]:
+                            display_name = f"**{subj}** 🔄" if subj in overlap_list else subj
+                            is_checked = subj in st.session_state[f"selected_{g_name}"]
+                            if st.checkbox(f"[{tag}] {display_name}", value=is_checked, key=f"chk_{g_name}_{subj}"):
+                                if subj not in st.session_state[f"selected_{g_name}"]:
+                                    st.session_state[f"selected_{g_name}"].append(subj)
+                                    st.rerun()
+                            else:
+                                if subj in st.session_state[f"selected_{g_name}"]:
+                                    st.session_state[f"selected_{g_name}"].remove(subj)
+                                    st.rerun()
+            st.write("") # 영역 간 간격 띄우기
 
 st.divider()
 
 # ==========================================
 # [본인 선택 과목] (하단 요약표 확인)
 # ==========================================
-st.subheader("📋 본인 선택 과목")
+st.subheader("📋 본인 선택 과목 확인")
 st.write("위에서 선택한 과목이 맞는지 최종 확인하세요.")
 
 sum_cols = st.columns(4)
 col_idx = 0
-for sem in ["2학년 1학기", "2학년 2학기", "3학년 1학기", "3학년 2학기"]:
+for sem in semester_tabs:
     with sum_cols[col_idx]:
         st.markdown(f"**{sem}**")
         sem_subjects = []
         for g_name, g_info in groups_info.items():
-            if sem in g_info["semester"]:
+            if g_info["semester"] == sem:
                 for subj in st.session_state[f"selected_{g_name}"]:
-                    # 선택된 과목의 유형(tag) 찾기 로직 추가
                     tag = ""
                     for s, t, c in subject_list[g_name]:
                         if s == subj:
                             tag = t
                             break
-                    # 요약표에 유형을 포함하여 표시
                     sem_subjects.append(f"[{tag}] {subj}")
         
         if sem_subjects:
@@ -201,9 +221,9 @@ if st.button("🚀 최종 수강신청 검증하기", use_container_width=True, 
             all_selected.extend(selected)
             diff = len(selected) - info['limit']
             if diff > 0:
-                errors.append(f"🚩 **[{info['semester']} 선택 개수 초과]** \n👉 {info['limit']}과목을 선택해야 하는데 {len(selected)}과목을 선택했습니다. **{diff}과목을 체크 해제**해 주세요.")
+                errors.append(f"🚩 **[{info['semester']} {info['title']} 초과]** \n👉 {info['limit']}과목을 선택해야 하는데 {len(selected)}과목을 선택했습니다. **{diff}과목을 체크 해제**해 주세요.")
             elif diff < 0:
-                errors.append(f"🚩 **[{info['semester']} 선택 개수 부족]** \n👉 {info['limit']}과목을 선택해야 하는데 {len(selected)}과목만 선택했습니다. **{-diff}과목을 더 체크**해 주세요.")
+                errors.append(f"🚩 **[{info['semester']} {info['title']} 부족]** \n👉 {info['limit']}과목을 선택해야 하는데 {len(selected)}과목만 선택했습니다. **{-diff}과목을 더 체크**해 주세요.")
 
         # 2. 위계 검증 (How to fix 추가)
         for subj in all_selected:
