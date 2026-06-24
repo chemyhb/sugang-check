@@ -223,4 +223,31 @@ if st.button("🚀 최종 수강신청 검증하기", use_container_width=True, 
             if diff > 0:
                 errors.append(f"🚩 **[{info['semester']} {info['title']} 초과]** \n👉 {info['limit']}과목을 선택해야 하는데 {len(selected)}과목을 선택했습니다. **{diff}과목을 체크 해제**해 주세요.")
             elif diff < 0:
-                errors.append(f"🚩 **[{info['semester']} {info['title']} 부족]** \n👉 {info['limit
+                errors.append(f"🚩 **[{info['semester']} {info['title']} 부족]** \n👉 {info['limit']}과목을 선택해야 하는데 {len(selected)}과목만 선택했습니다. **{-diff}과목을 더 체크**해 주세요.")
+
+        # 2. 위계 검증 (How to fix 추가)
+        for subj in all_selected:
+            if subj in hierarchy_rules:
+                pre_subj = hierarchy_rules[subj]
+                if pre_subj not in all_selected:
+                    errors.append(f"🚩 **[과목 위계 오류]** \n👉 '{subj}'을(를) 수강하려면 반드시 '{pre_subj}'을(를) 함께 들어야 합니다. **'{pre_subj}'을(를) 추가로 체크**하거나, **'{subj}' 선택을 취소**해 주세요.")
+        
+        # 3. 국수영 8과목 제한 검증 (How to fix 추가)
+        kme_selected = [s for s in all_selected if s in kme_subjects]
+        if len(kme_selected) > 8:
+            excess = len(kme_selected) - 8
+            errors.append(f"🚩 **[국/수/영 편중 오류]** \n👉 국/수/영 과목을 {len(kme_selected)}개 선택하여 최대 한도(8과목)를 넘었습니다. 선택하신 국/수/영 과목 중 **{excess}과목을 취소하고 탐구 등 다른 교과군으로 변경**해 주세요.")
+
+        # 4. 중복 수강 검증 (How to fix 추가)
+        for overlap_subj in overlap_list:
+            if all_selected.count(overlap_subj) > 1:
+                errors.append(f"🚩 **[중복 수강 오류]** \n👉 '{overlap_subj}' 과목을 2회 이상 선택했습니다. 이 과목은 3년 동안 딱 1번만 들을 수 있습니다. **하나의 학기에서만 남기고 나머지는 체크 해제**해 주세요.")
+
+        # 5. 필수 12학점 검증 (How to fix 추가)
+        tif_selected = [s for s in all_selected if s in tech_info_foreign_subjects]
+        if len(tif_selected) < 4:
+            shortage = 4 - len(tif_selected)
+            errors.append(f"🚩 **[필수 교과 이수 부족]** \n👉 졸업을 위해 기술·가정/정보/제2외국어/한문 영역에서 최소 4과목을 챙겨야 하는데 {len(tif_selected)}과목만 담았습니다. **해당 영역에서 {shortage}과목을 더 추가**해 주세요.")
+
+        # 결과 팝업 호출
+        show_result_dialog(errors)
