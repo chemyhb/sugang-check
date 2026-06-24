@@ -321,7 +321,7 @@ if st.session_state.is_valid:
     
     if st.button("📥 수강신청 데이터 제출하기", use_container_width=True, type="primary"):
         
-        # 📌📌 [매우 중요] 아래에 구글 앱스 스크립트 '웹 앱 URL'을 꼭 붙여넣으세요! 📌📌
+        # 📌 선생님의 구글 앱스 스크립트 주소 (완벽 세팅)
         GAS_URL = "https://script.google.com/macros/s/AKfycbz72qQlrmowO96M1CeJZpQhyywFWBS0w1Sq-xud--G42DtYfpg_Ti8p3f-5iQmd2gh4/exec"
         
         def get_sem_str(sem):
@@ -342,4 +342,14 @@ if st.session_state.is_valid:
         }
         
         try:
+            # 📌 괄호 오류 완벽 해결!
             response = requests.post(GAS_URL, json=payload)
+            
+            if response.status_code == 200:
+                st.balloons()
+                st.success(f"🎉 {st_class} {st_num} {st_name} 학생의 수강신청 데이터가 성공적으로 제출되었습니다!")
+                st.session_state.is_valid = False 
+            else:
+                st.error("⚠️ 데이터 제출에 실패했습니다. 선생님께 문의해 주세요.")
+        except Exception as e:
+            st.error(f"⚠️ 연결 오류가 발생했습니다. (에러: {e})")
