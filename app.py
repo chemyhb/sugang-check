@@ -30,22 +30,24 @@ hierarchy_rules = {
     '일본어 회화': '일본어', '심화 일본어': '일본어'
 }
 
+# 📌 학기별 학교 지정(필수) 과목 리스트 및 학점 (과목명, 유형, 학점)
 mandatory_subjects = {
-    "2학년 1학기": [("[일반]", "문학"), ("[일반]", "대수"), ("[일반]", "영어Ⅰ"), ("[융합]", "스포츠 생활1")],
-    "2학년 2학기": [("[일반]", "독서와 작문"), ("[일반]", "미적분Ⅰ"), ("[일반]", "영어Ⅱ"), ("[융합]", "스포츠 생활2")],
-    "3학년 1학기": [("[일반]", "화법과 언어"), ("[일반]", "확률과 통계"), ("[진로]", "스포츠 문화*")],
-    "3학년 2학기": [("[진로]", "스포츠 과학*")]
+    "2학년 1학기": [("[일반]", "문학", 4), ("[일반]", "대수", 4), ("[일반]", "영어Ⅰ", 4), ("[융합]", "스포츠 생활1", 2)],
+    "2학년 2학기": [("[일반]", "독서와 작문", 4), ("[일반]", "미적분Ⅰ", 4), ("[일반]", "영어Ⅱ", 4), ("[융합]", "스포츠 생활2", 2)],
+    "3학년 1학기": [("[일반]", "화법과 언어", 4), ("[일반]", "확률과 통계", 4), ("[진로]", "스포츠 문화*", 2)],
+    "3학년 2학기": [("[진로]", "스포츠 과학*", 1)]
 }
 
+# 📌 그룹 정보에 각 그룹별 '학점(credit)' 정보 추가
 groups_info = {
-    "2-1 [택5]": {"limit": 5, "semester": "2학년 1학기", "title": "📌 3학점 × 5과목 선택"},
-    "2-1 예술 [택1]": {"limit": 1, "semester": "2학년 1학기", "title": "📌 예술 2학점 × 1과목 선택"},
-    "2-2 [택5]": {"limit": 5, "semester": "2학년 2학기", "title": "📌 3학점 × 5과목 선택"},
-    "2-2 예술 [택1]": {"limit": 1, "semester": "2학년 2학기", "title": "📌 예술 2학점 × 1과목 선택"},
-    "3-1 [택5]": {"limit": 5, "semester": "3학년 1학기", "title": "📌 3학점 × 5과목 선택"},
-    "3-1 교양 [택1]": {"limit": 1, "semester": "3학년 1학기", "title": "📌 교양/예술 2학점 × 1과목 선택"},
-    "3-2 [택8]": {"limit": 8, "semester": "3학년 2학기", "title": "📌 3학점 × 8과목 선택"},
-    "3-2 교양 [택1]": {"limit": 1, "semester": "3학년 2학기", "title": "📌 교양 2학점 × 1과목 선택"}
+    "2-1 [택5]": {"limit": 5, "semester": "2학년 1학기", "title": "📌 3학점 × 5과목 선택", "credit": 3},
+    "2-1 예술 [택1]": {"limit": 1, "semester": "2학년 1학기", "title": "📌 예술 2학점 × 1과목 선택", "credit": 2},
+    "2-2 [택5]": {"limit": 5, "semester": "2학년 2학기", "title": "📌 3학점 × 5과목 선택", "credit": 3},
+    "2-2 예술 [택1]": {"limit": 1, "semester": "2학년 2학기", "title": "📌 예술 2학점 × 1과목 선택", "credit": 2},
+    "3-1 [택5]": {"limit": 5, "semester": "3학년 1학기", "title": "📌 3학점 × 5과목 선택", "credit": 3},
+    "3-1 교양 [택1]": {"limit": 1, "semester": "3학년 1학기", "title": "📌 교양/예술 2학점 × 1과목 선택", "credit": 2},
+    "3-2 [택8]": {"limit": 8, "semester": "3학년 2학기", "title": "📌 3학점 × 8과목 선택", "credit": 3},
+    "3-2 교양 [택1]": {"limit": 1, "semester": "3학년 2학기", "title": "📌 교양 2학점 × 1과목 선택", "credit": 2}
 }
 
 subject_list = {
@@ -227,10 +229,10 @@ with col_next:
 st.divider()
 
 # ==========================================
-# [본인 전체 시간표 확인]
+# [본인 전체 시간표 확인] -> [조건 및 학점 확인]으로 명칭 변경
 # ==========================================
-st.subheader("📋 수강 신청 조건 확인 (전체 시간표)")
-st.write("학교 지정(필수) 과목과 본인이 선택한 과목이 합쳐진 전체 시간표입니다.")
+st.subheader("📋 수강 신청 조건 및 선택 과목 확인")
+st.write("학교 지정(필수) 과목과 본인이 선택한 과목, 그리고 학점을 최종 확인하세요.")
 
 sum_cols = st.columns(4)
 col_idx = 0
@@ -238,24 +240,32 @@ for sem in semester_tabs:
     with sum_cols[col_idx]:
         st.markdown(f"**{sem}**")
         sem_subjects = []
+        sem_total_credit = 0
         
+        # 1. 학교 지정 과목
         if sem in mandatory_subjects:
-            for tag, subj in mandatory_subjects[sem]:
-                sem_subjects.append(f"🔒 {tag} {subj} (지정)")
+            for tag, subj, credit in mandatory_subjects[sem]:
+                sem_subjects.append({"과목명": f"🔒 {tag} {subj} (지정)", "학점": credit})
+                sem_total_credit += credit
                 
+        # 2. 본인 선택 과목
         for g_name, g_info in groups_info.items():
             if g_info["semester"] == sem:
+                group_credit = g_info["credit"]
                 for subj in st.session_state[f"selected_{g_name}"]:
                     tag = ""
                     for s, t, c in subject_list[g_name]:
                         if s == subj:
                             tag = t
                             break
-                    sem_subjects.append(f"✅ [{tag}] {subj}")
+                    sem_subjects.append({"과목명": f"✅ [{tag}] {subj}", "학점": group_credit})
+                    sem_total_credit += group_credit
         
         if sem_subjects:
-            df_display = pd.DataFrame(sem_subjects, columns=["수강 예정 과목"])
+            df_display = pd.DataFrame(sem_subjects)
             st.dataframe(df_display, hide_index=True, use_container_width=True)
+            # 표 하단에 학기 총합계 표시
+            st.markdown(f"<div style='text-align: right; color: #004d99; font-weight: bold;'>학기 총합: {sem_total_credit}학점</div>", unsafe_allow_html=True)
         else:
             st.caption("내역 없음")
     col_idx += 1
