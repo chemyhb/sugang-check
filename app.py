@@ -90,7 +90,7 @@ def show_result_dialog(errors):
 # ==========================================
 st.set_page_config(page_title="2026 수강신청 검증", layout="wide")
 st.title("📚 2026학년도 수강신청 사전 검증")
-st.caption("아래에서 과목을 선택하면 상단의 [본인 선택 과목]에 실시간으로 반영됩니다.")
+st.caption("아래 탭에서 과목을 선택하면 하단의 [본인 선택 과목] 영역에 실시간으로 반영됩니다.")
 
 col_info1, col_info2, col_empty = st.columns([1, 1, 3])
 with col_info1:
@@ -105,34 +105,9 @@ for group in groups_info.keys():
         st.session_state[f"selected_{group}"] = []
 
 # ==========================================
-# [본인 선택 과목] (상단 고정 요약표)
+# [수강신청 과목 선택] (상단 탭 형식 폼)
 # ==========================================
-st.subheader("📋 본인 선택 과목")
-st.write("실시간으로 담은 과목을 확인하세요.")
-
-sum_cols = st.columns(4)
-col_idx = 0
-for sem in ["2학년 1학기", "2학년 2학기", "3학년 1학기", "3학년 2학기"]:
-    with sum_cols[col_idx]:
-        st.markdown(f"**{sem}**")
-        sem_subjects = []
-        for g_name, g_info in groups_info.items():
-            if sem in g_info["semester"]:
-                sem_subjects.extend(st.session_state[f"selected_{g_name}"])
-        
-        if sem_subjects:
-            df_display = pd.DataFrame(sem_subjects, columns=["선택 과목"])
-            st.dataframe(df_display, hide_index=True, use_container_width=True)
-        else:
-            st.caption("선택 내역 없음")
-    col_idx += 1
-
-st.divider()
-
-# ==========================================
-# [수요조사 과목 선택] (하단 리스트 폼)
-# ==========================================
-st.subheader("📝 과목 선택 (수요조사)")
+st.subheader("📝 과목 선택")
 
 tabs = st.tabs(list(groups_info.keys()))
 sort_order = {'일반': 1, '진로': 2, '융합': 3, '교양': 4}
@@ -174,6 +149,39 @@ for i, (group_name, info) in enumerate(groups_info.items()):
                             if subj in st.session_state[f"selected_{group_name}"]:
                                 st.session_state[f"selected_{group_name}"].remove(subj)
                                 st.rerun()
+
+st.divider()
+
+# ==========================================
+# [본인 선택 과목] (하단 요약표 확인)
+# ==========================================
+st.subheader("📋 본인 선택 과목")
+st.write("위에서 선택한 과목이 맞는지 최종 확인하세요.")
+
+sum_cols = st.columns(4)
+col_idx = 0
+for sem in ["2학년 1학기", "2학년 2학기", "3학년 1학기", "3학년 2학기"]:
+    with sum_cols[col_idx]:
+        st.markdown(f"**{sem}**")
+        sem_subjects = []
+        for g_name, g_info in groups_info.items():
+            if sem in g_info["semester"]:
+                for subj in st.session_state[f"selected_{g_name}"]:
+                    # 선택된 과목의 유형(tag) 찾기 로직 추가
+                    tag = ""
+                    for s, t, c in subject_list[g_name]:
+                        if s == subj:
+                            tag = t
+                            break
+                    # 요약표에 유형을 포함하여 표시
+                    sem_subjects.append(f"[{tag}] {subj}")
+        
+        if sem_subjects:
+            df_display = pd.DataFrame(sem_subjects, columns=["선택 과목"])
+            st.dataframe(df_display, hide_index=True, use_container_width=True)
+        else:
+            st.caption("선택 내역 없음")
+    col_idx += 1
 
 st.divider()
 
