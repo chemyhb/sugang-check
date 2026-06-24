@@ -342,4 +342,4 @@ if st.session_state.is_valid:
         }
         
         try:
-            response = requests.post(GAS_URL, json=payload
+            response = requests.post(GAS_URL, json=payload)
