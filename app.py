@@ -30,7 +30,7 @@ hierarchy_rules = {
     '일본어 회화': '일본어', '심화 일본어': '일본어'
 }
 
-# 📌 [추가] 학기별 학교 지정(필수) 과목 리스트
+# 📌 학기별 학교 지정(필수) 과목 리스트
 mandatory_subjects = {
     "2학년 1학기": [("[일반]", "문학"), ("[일반]", "대수"), ("[일반]", "영어Ⅰ"), ("[융합]", "스포츠 생활1")],
     "2학년 2학기": [("[일반]", "독서와 작문"), ("[일반]", "미적분Ⅰ"), ("[일반]", "영어Ⅱ"), ("[융합]", "스포츠 생활2")],
@@ -124,6 +124,18 @@ with col_info1:
     st_id = st.text_input("학번", placeholder="예: 10101")
 with col_info2:
     st_name = st.text_input("성명")
+
+st.divider()
+
+# 🔥 [추가] 수강신청 전 필수 확인 사항 안내 박스
+with st.expander("🚨 **[필독] 수강신청 시 반드시 고려해야 할 5가지 필수 조건 (클릭해서 확인)**", expanded=True):
+    st.markdown("""
+    1. **선수 과목(위계) 이수 필수**: 과학 및 제2외국어 교과의 심화 과목(진로/융합)을 들으려면, 반드시 해당 과목의 기초 과목(일반)을 함께 선택해야 합니다. *(예: '생물의 유전' 선택 시 '생명과학' 필수)*
+    2. **국·수·영 편중 방지**: 국어, 수학, 영어 교과군에 속하는 선택 과목은 3년 동안 **최대 8과목(24학점)까지만** 선택할 수 있습니다.
+    3. **필수 교과 영역 이수**: 기술·가정, 정보, 제2외국어, 한문 교과군 안에서 3년 동안 **최소 4과목(12학점) 이상**을 반드시 선택해야 합니다.
+    4. **중복 편성 과목 1회 수강**: 과목명 옆에 **🔄 표시가 있는 과목**은 여러 학기에 걸쳐 개설되어 있지만, **3년 동안 딱 한 학기에서만** 골라야 합니다.
+    5. **학기별 정해진 과목 수 준수**: 각 학기별로 [택 5], [택 1] 등 정해진 필수 선택 개수를 정확히 맞춰야 합니다.
+    """)
 
 st.divider()
 
@@ -232,12 +244,12 @@ for sem in semester_tabs:
         st.markdown(f"**{sem}**")
         sem_subjects = []
         
-        # 1. 학교 지정 과목 먼저 추가 (자물쇠 아이콘)
+        # 1. 학교 지정 과목
         if sem in mandatory_subjects:
             for tag, subj in mandatory_subjects[sem]:
                 sem_subjects.append(f"🔒 {tag} {subj} (지정)")
                 
-        # 2. 본인 선택 과목 추가 (체크 아이콘)
+        # 2. 본인 선택 과목
         for g_name, g_info in groups_info.items():
             if g_info["semester"] == sem:
                 for subj in st.session_state[f"selected_{g_name}"]:
@@ -258,7 +270,7 @@ for sem in semester_tabs:
 st.divider()
 
 # ==========================================
-# 4. 스마트 최종 검증 
+# 4. 스마트 최종 검증 (에러 위치 추적 기능 강화)
 # ==========================================
 if st.button("🚀 최종 수강신청 검증하기", use_container_width=True, type="primary"):
     if not st_id or not st_name:
@@ -283,17 +295,3 @@ if st.button("🚀 최종 수강신청 검증하기", use_container_width=True, 
                     errors.append(f"🚩 **[과목 위계 오류]** \n👉 '{subj}'을(를) 수강하려면 반드시 '{pre_subj}'을(를) 함께 들어야 합니다. **'{pre_subj}'을(를) 추가로 체크**하거나, **'{subj}' 선택을 취소**해 주세요.")
         
         kme_selected = [s for s in all_selected if s in kme_subjects]
-        if len(kme_selected) > 8:
-            excess = len(kme_selected) - 8
-            errors.append(f"🚩 **[국/수/영 편중 오류]** \n👉 국/수/영 과목을 {len(kme_selected)}개 선택하여 최대 한도(8과목)를 넘었습니다. 선택하신 국/수/영 과목 중 **{excess}과목을 취소하고 탐구 등 다른 교과군으로 변경**해 주세요.")
-
-        for overlap_subj in overlap_list:
-            if all_selected.count(overlap_subj) > 1:
-                errors.append(f"🚩 **[중복 수강 오류]** \n👉 '{overlap_subj}' 과목을 2회 이상 선택했습니다. 이 과목은 3년 동안 딱 1번만 들을 수 있습니다. **하나의 학기에서만 남기고 나머지는 체크 해제**해 주세요.")
-
-        tif_selected = [s for s in all_selected if s in tech_info_foreign_subjects]
-        if len(tif_selected) < 4:
-            shortage = 4 - len(tif_selected)
-            errors.append(f"🚩 **[필수 교과 이수 부족]** \n👉 졸업을 위해 기술·가정/정보/제2외국어/한문 영역에서 최소 4과목을 챙겨야 하는데 {len(tif_selected)}과목만 담았습니다. **해당 영역에서 {shortage}과목을 더 추가**해 주세요.")
-
-        show_result_dialog(errors)
