@@ -322,7 +322,7 @@ if st.session_state.is_valid:
     if st.button("📥 수강신청 데이터 제출하기", use_container_width=True, type="primary"):
         
         # 📌📌 [매우 중요] 아래에 구글 앱스 스크립트 '웹 앱 URL'을 꼭 붙여넣으세요! 📌📌
-        GAS_URL = "선생님의_웹앱_URL을_여기에_붙여넣으세요"
+        GAS_URL = "https://script.google.com/macros/s/AKfycbz72qQlrmowO96M1CeJZpQhyywFWBS0w1Sq-xud--G42DtYfpg_Ti8p3f-5iQmd2gh4/exec"
         
         def get_sem_str(sem):
             subjs = []
@@ -342,4 +342,4 @@ if st.session_state.is_valid:
         }
         
         try:
-            response = requests.post(GAS_URL = "https://script.google.com/macros/s/AKfycbz72qQlrmowO96M1CeJZpQhyywFWBS0w1Sq-xud--G42DtYfpg_Ti8p3f-5iQmd2gh4/exec", json=payload
+            response = requests.post(GAS_URL, json=payload
