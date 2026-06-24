@@ -81,7 +81,6 @@ subject_list = {
     "3-2 교양 [택1]": [('논리와 사고', '진로', '교양'), ('생애 설계와 자립', '융합', '교양'), ('생태와 환경', '일반', '교양'), ('인간과 심리', '진로', '교양'), ('교육의 이해', '진로', '교양'), ('인간과 경제활동', '융합', '교양')]
 }
 
-# 🔥 [수정] 다이얼로그(팝업) 문구 수정
 @st.dialog("🔔 수강신청 조건 확인 결과")
 def show_result_dialog(errors):
     if errors:
@@ -116,7 +115,7 @@ def update_sem_from_radio():
 # 3. 화면 UI 
 # ==========================================
 st.set_page_config(page_title="수강신청 사전 진단", layout="wide")
-st.title("📚 2026학년도 수강신청 사전 진단 서비스")
+st.title("📚 2026학년도 입학생 수강신청 사전 진단 시스템")
 st.caption("과목을 모두 선택한 후 하단의 [다음 학기] 버튼을 눌러 이동하세요. 최종 조건 확인 버튼은 맨 아래에 있습니다.")
 
 col_info1, col_info2, col_empty = st.columns([1, 1, 3])
@@ -201,7 +200,7 @@ for g_name in sem_groups:
             for idx, (subj, tag) in enumerate(items):
                 with cols[idx % 3]:
                     display_name = f"**{subj} (중복)**" if subj in overlap_list else subj
-                    is_checked = subj in st.session_state[f"selected_{group_name}"] if False else (subj in st.session_state[f"selected_{g_name}"])
+                    is_checked = subj in st.session_state[f"selected_{g_name}"]
                     if st.checkbox(f"[{tag}] {display_name}", value=is_checked, key=f"chk_{g_name}_{subj}"):
                         if subj not in st.session_state[f"selected_{g_name}"]:
                             st.session_state[f"selected_{g_name}"].append(subj)
@@ -264,7 +263,7 @@ for sem in semester_tabs:
 st.divider()
 
 # ==========================================
-# 4. 스마트 사전 진단 로직 (용어 수정 완료)
+# 4. 스마트 사전 진단 로직
 # ==========================================
 if st.button("🚀 수강신청 조건 최종 확인하기", use_container_width=True, type="primary"):
     if not st_id or not st_name:
