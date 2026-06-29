@@ -112,8 +112,8 @@ def go_prev():
 # ==========================================
 # 3. 화면 UI 
 # ==========================================
-st.set_page_config(page_title="수강신청 사전 진단", layout="wide")
-st.title("📚 2026학년도 입학생 수강신청 사전 진단 시스템")
+st.set_page_config(page_title="성덕고 수강신청 사전 진단", layout="wide")
+st.title("📚성덕고 2026학년도 입학생 수강신청 사전 진단 시스템")
 st.caption("각 학기 탭에서 과목을 모두 선택한 후, 하단의 [조건 확인] 버튼을 눌러 통과하면 데이터를 제출할 수 있습니다.")
 
 col_class, col_num, col_name, col_empty = st.columns([1, 1, 2, 2])
