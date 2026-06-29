@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st; st.html("<style>footer {visibility: hidden;} .stAppDeployButton {display: none;} div[data-testid='stStatusWidget'] {display: none;}</style>")
 import pandas as pd
 import requests
 
