@@ -113,6 +113,18 @@ def go_prev():
 # 3. 화면 UI 
 # ==========================================
 st.set_page_config(page_title="수강신청 사전 진단", layout="wide")
+# 🔽 이 마법의 코드를 추가하면 기본 메뉴와 로고(푸터)가 싹 사라집니다!
+hide_streamlit_style = """
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+</style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+st.title("📚 2026학년도 입학생 수강신청 사전 진단 시스템")
+# ... (이하 기존 코드 동일)
 st.title("📚 2026학년도 입학생 수강신청 사전 진단 시스템")
 st.caption("각 학기 탭에서 과목을 모두 선택한 후, 하단의 [조건 확인] 버튼을 눌러 통과하면 데이터를 제출할 수 있습니다.")
 
