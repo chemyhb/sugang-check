@@ -113,6 +113,35 @@ def go_prev():
 # 3. 화면 UI 
 # ==========================================
 st.set_page_config(page_title="성덕고 수강신청 사전 진단", layout="wide")
+mobile_css = """
+<style>
+/* 화면 너비가 768px 이하(스마트폰)일 때만 작동 */
+@media (max-width: 768px) {
+    /* 메인 제목 크기 줄이기 */
+    h1 {
+        font-size: 1.5rem !important;
+        line-height: 1.3 !important;
+    }
+    /* 부제목(학기 이름 등) 크기 줄이기 */
+    h3, h4 {
+        font-size: 1.1rem !important;
+    }
+    /* 학기 탭 버튼 크기 및 글자 줄이기 */
+    .stButton > button {
+        padding: 0.3rem 0.5rem !important;
+        min-height: 2.5rem !important;
+    }
+    .stButton > button p {
+        font-size: 0.85rem !important;
+    }
+    /* 안내문구 등 캡션 크기 줄이기 */
+    .st-emotion-cache-1104q3v {
+        font-size: 0.8rem !important;
+    }
+}
+</style>
+"""
+st.markdown(mobile_css, unsafe_allow_html=True)
 st.title("📚성덕고 2026학년도 입학생 수강신청 사전 진단 시스템")
 st.caption("각 학기 탭에서 과목을 모두 선택한 후, 하단의 [조건 확인] 버튼을 눌러 통과하면 데이터를 제출할 수 있습니다.")
 
