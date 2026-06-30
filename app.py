@@ -44,7 +44,7 @@ groups_info = {
     "2-2 [택5]": {"limit": 5, "semester": "2학년 2학기", "title": "📌 3학점 × 5과목 선택", "credit": 3},
     "2-2 예술 [택1]": {"limit": 1, "semester": "2학년 2학기", "title": "📌 예술 2학점 × 1과목 선택", "credit": 2},
     "3-1 [택5]": {"limit": 5, "semester": "3학년 1학기", "title": "📌 3학점 × 5과목 선택", "credit": 3},
-    "3-1 교양 [택1]": {"limit": 1, "semester": "3학년 1학기", "title": "📌 교양/예술 2학점 × 1과목 선택", "credit": 2},
+    "3-1 교양 [택1]": {"limit": 1, "semester": "3학년 1학기", "title": "📌 교양 2학점 × 1과목 선택", "credit": 2}, # 오타 수정
     "3-2 [택8]": {"limit": 8, "semester": "3학년 2학기", "title": "📌 3학점 × 8과목 선택", "credit": 3},
     "3-2 교양 [택1]": {"limit": 1, "semester": "3학년 2학기", "title": "📌 교양 2학점 × 1과목 선택", "credit": 2}
 }
@@ -97,9 +97,35 @@ if 'is_valid' not in st.session_state:
     st.session_state.is_valid = False
 
 # ==========================================
-# 3. 화면 UI
+# 3. 화면 UI 및 반응형 CSS 설정
 # ==========================================
 st.set_page_config(page_title="수강신청 사전 진단", layout="wide")
+
+# 🔥 모바일/태블릿 반응형 폰트 사이즈 조정 CSS
+responsive_css = """
+<style>
+/* 기본 (데스크탑) */
+h1 { font-size: 2.2rem !important; }
+h3 { font-size: 1.5rem !important; }
+h4 { font-size: 1.2rem !important; }
+
+/* 태블릿 및 모바일 가로 모드 (max-width: 992px) */
+@media (max-width: 992px) {
+    h1 { font-size: 1.8rem !important; }
+    h3 { font-size: 1.3rem !important; }
+    h4 { font-size: 1.1rem !important; }
+}
+
+/* 스마트폰 세로 모드 (max-width: 576px) */
+@media (max-width: 576px) {
+    h1 { font-size: 1.4rem !important; line-height: 1.3 !important; }
+    h3 { font-size: 1.1rem !important; }
+    h4 { font-size: 1.0rem !important; }
+    p, .stMarkdown, .stInfo, .stCaption { font-size: 0.9rem !important; }
+}
+</style>
+"""
+st.markdown(responsive_css, unsafe_allow_html=True)
 
 st.title("📚 2026학년도 입학생 수강신청 사전 진단 시스템")
 st.caption("각 학기 탭에서 과목을 모두 선택한 후, 하단의 [조건 확인] 버튼을 눌러 통과하면 데이터를 제출할 수 있습니다.")
@@ -114,15 +140,16 @@ with col_name:
 
 st.divider()
 
-# 🔥 오류 나던 expander 대신, 체크박스로 깔끔하게 토글되도록 변경!
-if st.checkbox("🚨 **[필독] 수강신청 시 반드시 확인해야 할 5가지 필수 조건 (클릭하여 닫기/열기)**", value=True):
-    st.info("""
-    1. **선수 과목(위계) 조건 확인**: 과학 및 제2외국어 교과의 심화 과목(진로/융합)을 들으려면, 반드시 해당 과목의 기초 과목(일반)을 함께 선택해야 합니다. *(예: '생물의 유전' 선택 시 '생명과학' 필수)*
-    2. **국·수·영 균형 이수**: 다양한 교과 학습을 위해 국어, 수학, 영어 교과군에 속하는 선택 과목은 3년 동안 **최대 8과목(24학점)까지만** 선택할 수 있습니다.
-    3. **필수 교과 영역 이수**: 기술·가정, 정보, 제2외국어, 한문 교과군 안에서 3년 동안 **최소 4과목(12학점) 이상**을 반드시 선택해야 합니다.
-    4. **중복 편성 과목 1회 수강**: 과목명 옆에 🔴**(중복)** 표시가 있는 과목은 여러 학기에 걸쳐 개설되어 있지만, **3년 동안 딱 한 학기에서만** 골라야 합니다.
-    5. **학기별 정해진 과목 수 준수**: 각 학기별로 [택 5], [택 1] 등 정해진 필수 선택 개수를 정확히 맞춰야 합니다.
-    """)
+# 🔥 접기/펴기 기능 제거, 항상 보이는 형태로 변경
+st.info("""
+**🚨 [필독] 수강신청 시 반드시 확인해야 할 5가지 필수 조건**
+
+1. **선수 과목(위계) 조건 확인**: 과학 및 제2외국어 교과의 심화 과목(진로/융합)을 들으려면, 반드시 해당 과목의 기초 과목(일반)을 함께 선택해야 합니다. *(예: '생물의 유전' 선택 시 '생명과학' 필수)*
+2. **국·수·영 균형 이수**: 다양한 교과 학습을 위해 국어, 수학, 영어 교과군에 속하는 선택 과목은 3년 동안 **최대 8과목(24학점)까지만** 선택할 수 있습니다.
+3. **필수 교과 영역 이수**: 기술·가정, 정보, 제2외국어, 한문 교과군 안에서 3년 동안 **최소 4과목(12학점) 이상**을 반드시 선택해야 합니다.
+4. **중복 편성 과목 1회 수강**: 과목명 옆에 🔴**(중복)** 표시가 있는 과목은 여러 학기에 걸쳐 개설되어 있지만, **3년 동안 딱 한 학기에서만** 골라야 합니다.
+5. **학기별 정해진 과목 수 준수**: 각 학기별로 [택 5], [택 1] 등 정해진 필수 선택 개수를 정확히 맞춰야 합니다.
+""")
 
 st.divider()
 
@@ -131,11 +158,10 @@ for group in groups_info.keys():
         st.session_state[f"selected_{group}"] = []
 
 # ==========================================
-# [수강신청 과목 선택 영역] - 🔥 네이티브 탭 기능 적용!
+# [수강신청 과목 선택 영역]
 # ==========================================
 st.subheader("📝 과목 선택")
 
-# 기존 버튼 탭 대신, 모바일에 완벽 최적화된 Streamlit 탭 기능 사용
 tabs = st.tabs(semester_tabs)
 
 cat_order_list = ['국어', '수학', '영어', '사회', '과학', '기술·가정/정보/제2외국어', '체육', '예술', '교양']
@@ -180,7 +206,6 @@ for i, sem in enumerate(semester_tabs):
                     cols = st.columns(3) 
                     for idx, (subj, tag) in enumerate(items):
                         with cols[idx % 3]:
-                            # 🔥 오류 많던 CSS 대신 시각적으로 가장 확실한 🔴 이모지 사용!
                             display_name = f"[{tag}] {subj} 🔴(중복)" if subj in overlap_list else f"[{tag}] {subj}"
                             is_checked = subj in st.session_state[f"selected_{g_name}"]
                             if st.checkbox(display_name, value=is_checked, key=f"chk_{g_name}_{subj}"):
@@ -294,6 +319,7 @@ if st.session_state.is_valid:
     
     if st.button("📥 수강신청 데이터 제출하기", use_container_width=True, type="primary"):
         
+        # 📌📌 선생님의 완벽한 구글 앱스 스크립트 주소를 꼭 여기에 붙여넣어주세요! 📌📌
         GAS_URL = "https://script.google.com/macros/s/AKfycbz72qQlrmowO96M1CeJZpQhyywFWBS0w1Sq-xud--G42DtYfpg_Ti8p3f-5iQmd2gh4/exec"
         
         def get_sem_str(sem):
