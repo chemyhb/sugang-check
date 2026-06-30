@@ -44,7 +44,7 @@ groups_info = {
     "2-2 [택5]": {"limit": 5, "semester": "2학년 2학기", "title": "📌 3학점 × 5과목 선택", "credit": 3},
     "2-2 예술 [택1]": {"limit": 1, "semester": "2학년 2학기", "title": "📌 예술 2학점 × 1과목 선택", "credit": 2},
     "3-1 [택5]": {"limit": 5, "semester": "3학년 1학기", "title": "📌 3학점 × 5과목 선택", "credit": 3},
-    "3-1 교양 [택1]": {"limit": 1, "semester": "3학년 1학기", "title": "📌 교양/예술 2학점 × 1과목 선택", "credit": 2},
+    "3-1 교양 [택1]": {"limit": 1, "semester": "3학년 1학기", "title": "📌 교양 2학점 × 1과목 선택", "credit": 2},
     "3-2 [택8]": {"limit": 8, "semester": "3학년 2학기", "title": "📌 3학점 × 8과목 선택", "credit": 3},
     "3-2 교양 [택1]": {"limit": 1, "semester": "3학년 2학기", "title": "📌 교양 2학점 × 1과목 선택", "credit": 2}
 }
