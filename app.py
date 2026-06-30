@@ -93,58 +93,13 @@ def show_error_dialog(errors):
 # ==========================================
 semester_tabs = ["2학년 1학기", "2학년 2학기", "3학년 1학기", "3학년 2학기"]
 
-if 'current_sem_idx' not in st.session_state:
-    st.session_state.current_sem_idx = 0
 if 'is_valid' not in st.session_state:
     st.session_state.is_valid = False
 
-def set_tab(idx):
-    st.session_state.current_sem_idx = idx
-
-def go_next():
-    if st.session_state.current_sem_idx < len(semester_tabs) - 1:
-        st.session_state.current_sem_idx += 1
-
-def go_prev():
-    if st.session_state.current_sem_idx > 0:
-        st.session_state.current_sem_idx -= 1
-
 # ==========================================
-# 3. 화면 UI 및 디자인 최적화 (모바일)
+# 3. 화면 UI
 # ==========================================
 st.set_page_config(page_title="수강신청 사전 진단", layout="wide")
-
-# 🔥 모바일 최적화 CSS (에러 수정 및 완벽 반영)
-mobile_optimized_css = """
-<style>
-/* 1. 중복 과목을 아주 굵고 진한 붉은색으로 강조 */
-div[data-testid="stCheckbox"] strong {
-    font-weight: 900 !important;
-    color: #C00000 !important; 
-}
-
-@media (max-width: 768px) {
-    /* 2. 메인 제목 크기 최적화 */
-    h1 { font-size: 1.4rem !important; line-height: 1.3 !important; }
-    h3, h4 { font-size: 1.0rem !important; }
-    
-    /* 3. 학기 탭 버튼 크기 대폭 축소 (가로정렬 블록 내 버튼) */
-    div[data-testid="stHorizontalBlock"] button {
-        padding: 0.1rem 0.2rem !important;
-        min-height: 2rem !important;
-    }
-    div[data-testid="stHorizontalBlock"] button p {
-        font-size: 0.7rem !important;
-        line-height: 1 !important;
-    }
-
-    /* 4. 필독 부분 arrow_down 아이콘 글자 깨짐 숨기기 */
-    span[data-testid="stExpanderIcon"] { display: none !important; }
-    .stExpander svg { display: none !important; }
-}
-</style>
-"""
-st.markdown(mobile_optimized_css, unsafe_allow_html=True)
 
 st.title("📚 2026학년도 입학생 수강신청 사전 진단 시스템")
 st.caption("각 학기 탭에서 과목을 모두 선택한 후, 하단의 [조건 확인] 버튼을 눌러 통과하면 데이터를 제출할 수 있습니다.")
@@ -159,12 +114,13 @@ with col_name:
 
 st.divider()
 
-with st.expander("🚨 **[필독] 수강신청 시 반드시 확인해야 할 5가지 필수 조건 (클릭하여 조건 펼치기/접기)**", expanded=True):
-    st.markdown("""
+# 🔥 오류 나던 expander 대신, 체크박스로 깔끔하게 토글되도록 변경!
+if st.checkbox("🚨 **[필독] 수강신청 시 반드시 확인해야 할 5가지 필수 조건 (클릭하여 닫기/열기)**", value=True):
+    st.info("""
     1. **선수 과목(위계) 조건 확인**: 과학 및 제2외국어 교과의 심화 과목(진로/융합)을 들으려면, 반드시 해당 과목의 기초 과목(일반)을 함께 선택해야 합니다. *(예: '생물의 유전' 선택 시 '생명과학' 필수)*
     2. **국·수·영 균형 이수**: 다양한 교과 학습을 위해 국어, 수학, 영어 교과군에 속하는 선택 과목은 3년 동안 **최대 8과목(24학점)까지만** 선택할 수 있습니다.
     3. **필수 교과 영역 이수**: 기술·가정, 정보, 제2외국어, 한문 교과군 안에서 3년 동안 **최소 4과목(12학점) 이상**을 반드시 선택해야 합니다.
-    4. **중복 편성 과목 1회 수강**: 과목명 옆에 **(중복)** 표시가 있는 과목은 여러 학기에 걸쳐 개설되어 있지만, **3년 동안 딱 한 학기에서만** 골라야 합니다.
+    4. **중복 편성 과목 1회 수강**: 과목명 옆에 🔴**(중복)** 표시가 있는 과목은 여러 학기에 걸쳐 개설되어 있지만, **3년 동안 딱 한 학기에서만** 골라야 합니다.
     5. **학기별 정해진 과목 수 준수**: 각 학기별로 [택 5], [택 1] 등 정해진 필수 선택 개수를 정확히 맞춰야 합니다.
     """)
 
@@ -175,18 +131,12 @@ for group in groups_info.keys():
         st.session_state[f"selected_{group}"] = []
 
 # ==========================================
-# [수강신청 과목 선택 영역]
+# [수강신청 과목 선택 영역] - 🔥 네이티브 탭 기능 적용!
 # ==========================================
 st.subheader("📝 과목 선택")
 
-tab_cols = st.columns(len(semester_tabs))
-for i, sem in enumerate(semester_tabs):
-    with tab_cols[i]:
-        btn_type = "primary" if st.session_state.current_sem_idx == i else "secondary"
-        st.button(sem, key=f"tab_btn_{i}", type=btn_type, use_container_width=True, on_click=set_tab, args=(i,))
-
-current_sem = semester_tabs[st.session_state.current_sem_idx]
-st.markdown(f"### ➡️ {current_sem}")
+# 기존 버튼 탭 대신, 모바일에 완벽 최적화된 Streamlit 탭 기능 사용
+tabs = st.tabs(semester_tabs)
 
 cat_order_list = ['국어', '수학', '영어', '사회', '과학', '기술·가정/정보/제2외국어', '체육', '예술', '교양']
 sort_order = {'일반': 1, '진로': 2, '융합': 3, '교양': 4}
@@ -196,65 +146,54 @@ def get_cat_order(cat):
         return cat_order_list.index(cat)
     return 99
 
-sem_groups = [g for g, info in groups_info.items() if info["semester"] == current_sem]
-
-for g_name in sem_groups:
-    info = groups_info[g_name]
-    st.markdown(f"#### {info['title']}")
-    st.write(f"최대 **{info['limit']}과목**을 선택해야 합니다. 굵은 글씨의 **(중복)** 과목은 3년 동안 한 번만 수강할 수 있습니다.")
-    
-    current_count = len(st.session_state[f"selected_{g_name}"])
-    if current_count == info['limit']:
-        st.success(f"✅ {current_count}/{info['limit']} 선택 완료")
-    elif current_count > info['limit']:
-        st.error(f"❌ {current_count}/{info['limit']} 초과 선택!")
-    else:
-        st.info(f"👉 {current_count}/{info['limit']} 선택 중")
-
-    cat_dict = {}
-    for subj, tag, cat in subject_list[g_name]:
-        if cat not in cat_dict:
-            cat_dict[cat] = []
-        cat_dict[cat].append((subj, tag))
-
-    sorted_cats = sorted(cat_dict.keys(), key=get_cat_order)
-
-    for cat in sorted_cats:
-        items = cat_dict[cat]
-        items.sort(key=lambda x: (sort_order.get(x[1], 99), x[0]))
+for i, sem in enumerate(semester_tabs):
+    with tabs[i]:
+        sem_groups = [g for g, info in groups_info.items() if info["semester"] == sem]
         
-        with st.container(border=True):
-            # 🔥 문제의 줄 완벽 수정 완료!
-            st.markdown(f"**🔹 {cat}**")
-            cols = st.columns(3) 
-            for idx, (subj, tag) in enumerate(items):
-                with cols[idx % 3]:
-                    display_name = f"[{tag}] **{subj} (중복)**" if subj in overlap_list else f"[{tag}] {subj}"
-                    is_checked = subj in st.session_state[f"selected_{g_name}"]
-                    if st.checkbox(display_name, value=is_checked, key=f"chk_{g_name}_{subj}"):
-                        if subj not in st.session_state[f"selected_{g_name}"]:
-                            st.session_state[f"selected_{g_name}"].append(subj)
-                            st.session_state.is_valid = False
-                            st.rerun()
-                    else:
-                        if subj in st.session_state[f"selected_{g_name}"]:
-                            st.session_state[f"selected_{g_name}"].remove(subj)
-                            st.session_state.is_valid = False
-                            st.rerun()
-    st.write("") 
+        for g_name in sem_groups:
+            info = groups_info[g_name]
+            st.markdown(f"#### {info['title']}")
+            st.write(f"최대 **{info['limit']}과목**을 선택해야 합니다. 🔴 표시는 3년 동안 한 번만 수강할 수 있는 중복 과목입니다.")
+            
+            current_count = len(st.session_state[f"selected_{g_name}"])
+            if current_count == info['limit']:
+                st.success(f"✅ {current_count}/{info['limit']} 선택 완료")
+            elif current_count > info['limit']:
+                st.error(f"❌ {current_count}/{info['limit']} 초과 선택!")
+            else:
+                st.info(f"👉 {current_count}/{info['limit']} 선택 중")
 
-st.markdown("<br>", unsafe_allow_html=True)
-col_prev, col_space, col_next = st.columns([1, 2, 1])
+            cat_dict = {}
+            for subj, tag, cat in subject_list[g_name]:
+                if cat not in cat_dict:
+                    cat_dict[cat] = []
+                cat_dict[cat].append((subj, tag))
 
-with col_prev:
-    if st.session_state.current_sem_idx > 0:
-        prev_name = semester_tabs[st.session_state.current_sem_idx - 1]
-        st.button(f"⬅️ 이전 학기 ({prev_name})", on_click=go_prev, use_container_width=True)
+            sorted_cats = sorted(cat_dict.keys(), key=get_cat_order)
 
-with col_next:
-    if st.session_state.current_sem_idx < len(semester_tabs) - 1:
-        next_name = semester_tabs[st.session_state.current_sem_idx + 1]
-        st.button(f"다음 학기 ({next_name}) ➡️", on_click=go_next, use_container_width=True, type="primary")
+            for cat in sorted_cats:
+                items = cat_dict[cat]
+                items.sort(key=lambda x: (sort_order.get(x[1], 99), x[0]))
+                
+                with st.container(border=True):
+                    st.markdown(f"**🔹 {cat}**")
+                    cols = st.columns(3) 
+                    for idx, (subj, tag) in enumerate(items):
+                        with cols[idx % 3]:
+                            # 🔥 오류 많던 CSS 대신 시각적으로 가장 확실한 🔴 이모지 사용!
+                            display_name = f"[{tag}] {subj} 🔴(중복)" if subj in overlap_list else f"[{tag}] {subj}"
+                            is_checked = subj in st.session_state[f"selected_{g_name}"]
+                            if st.checkbox(display_name, value=is_checked, key=f"chk_{g_name}_{subj}"):
+                                if subj not in st.session_state[f"selected_{g_name}"]:
+                                    st.session_state[f"selected_{g_name}"].append(subj)
+                                    st.session_state.is_valid = False
+                                    st.rerun()
+                            else:
+                                if subj in st.session_state[f"selected_{g_name}"]:
+                                    st.session_state[f"selected_{g_name}"].remove(subj)
+                                    st.session_state.is_valid = False
+                                    st.rerun()
+            st.write("") 
 
 st.divider()
 
@@ -355,7 +294,6 @@ if st.session_state.is_valid:
     
     if st.button("📥 수강신청 데이터 제출하기", use_container_width=True, type="primary"):
         
-        # 📌📌 선생님의 완벽한 구글 앱스 스크립트 주소를 꼭 여기에 붙여넣어주세요! 📌📌
         GAS_URL = "https://script.google.com/macros/s/AKfycbz72qQlrmowO96M1CeJZpQhyywFWBS0w1Sq-xud--G42DtYfpg_Ti8p3f-5iQmd2gh4/exec"
         
         def get_sem_str(sem):
